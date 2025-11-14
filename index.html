@@ -2,10 +2,13 @@
 <html lang="es">
 
 <head>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reseñas de la Escuela n°5 Juan Manuel Savio</title>
-    
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -175,82 +178,82 @@
     </main>
 
     <script>
-    const form = document.getElementById('formReseña');
-    const contenedorReseñas = document.getElementById('reseñas');
-    const estrellas = document.querySelectorAll('.estrella');
+        const form = document.getElementById('formReseña');
+        const contenedorReseñas = document.getElementById('reseñas');
+        const estrellas = document.querySelectorAll('.estrella');
 
-    let calificacionSeleccionada = 0;
+        let calificacionSeleccionada = 0;
 
-    // 🆔 Crear ID único por usuario
-    if (!localStorage.getItem("userId")) {
-        localStorage.setItem("userId", "user-" + Date.now());
-    }
-    const userId = localStorage.getItem("userId");
+        // 🆔 Crear ID único por usuario
+        if (!localStorage.getItem("userId")) {
+            localStorage.setItem("userId", "user-" + Date.now());
+        }
+        const userId = localStorage.getItem("userId");
 
-    // 🔐 Contraseña del moderador (cámbiala por la que quieras)
-    const MOD_PASSWORD = "admin123";
-    let modoModerador = false;
+        // 🔐 Contraseña del moderador (cámbiala por la que quieras)
+        const MOD_PASSWORD = "admin123";
+        let modoModerador = false;
 
-    // ⭐ Manejo de estrellas
-    estrellas.forEach(estrella => {
-        estrella.addEventListener('click', () => {
-            calificacionSeleccionada = estrella.getAttribute('data-valor');
-            estrellas.forEach(e => e.classList.remove('seleccionada'));
-            for (let i = 0; i < calificacionSeleccionada; i++) {
-                estrellas[i].classList.add('seleccionada');
+        // ⭐ Manejo de estrellas
+        estrellas.forEach(estrella => {
+            estrella.addEventListener('click', () => {
+                calificacionSeleccionada = estrella.getAttribute('data-valor');
+                estrellas.forEach(e => e.classList.remove('seleccionada'));
+                for (let i = 0; i < calificacionSeleccionada; i++) {
+                    estrellas[i].classList.add('seleccionada');
+                }
+            });
+        });
+
+        // Cargar reseñas
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarReseñas();
+            crearBotonModerador();
+        });
+
+        // Enviar reseña
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const nombre = document.getElementById('nombre').value.trim();
+            const comentario = document.getElementById('comentario').value.trim();
+            const instalaciones = document.getElementById('instalaciones').value;
+            const profesores = document.getElementById('profesores').value;
+            const expotecnica = document.getElementById('expotecnica').value;
+            const especialidades = document.getElementById('especialidades').value;
+
+            if (nombre && comentario && calificacionSeleccionada > 0 &&
+                instalaciones && profesores && expotecnica && especialidades) {
+
+                const nuevaReseña = {
+                    id: Date.now(),
+                    userId,
+                    nombre,
+                    comentario,
+                    calificacion: calificacionSeleccionada,
+                    instalaciones,
+                    profesores,
+                    expotecnica,
+                    especialidades,
+                    fecha: new Date().toLocaleDateString()
+                };
+
+                guardarReseña(nuevaReseña);
+                mostrarReseña(nuevaReseña);
+                form.reset();
+                estrellas.forEach(e => e.classList.remove('seleccionada'));
+                calificacionSeleccionada = 0;
+
+            } else {
+                alert('Por favor, completa todos los campos.');
             }
         });
-    });
 
-    // Cargar reseñas
-    document.addEventListener('DOMContentLoaded', () => {
-        cargarReseñas();
-        crearBotonModerador();
-    });
-
-    // Enviar reseña
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const nombre = document.getElementById('nombre').value.trim();
-        const comentario = document.getElementById('comentario').value.trim();
-        const instalaciones = document.getElementById('instalaciones').value;
-        const profesores = document.getElementById('profesores').value;
-        const expotecnica = document.getElementById('expotecnica').value;
-        const especialidades = document.getElementById('especialidades').value;
-
-        if (nombre && comentario && calificacionSeleccionada > 0 &&
-            instalaciones && profesores && expotecnica && especialidades) {
-
-            const nuevaReseña = {
-                id: Date.now(),
-                userId,
-                nombre,
-                comentario,
-                calificacion: calificacionSeleccionada,
-                instalaciones,
-                profesores,
-                expotecnica,
-                especialidades,
-                fecha: new Date().toLocaleDateString()
-            };
-
-            guardarReseña(nuevaReseña);
-            mostrarReseña(nuevaReseña);
-            form.reset();
-            estrellas.forEach(e => e.classList.remove('seleccionada'));
-            calificacionSeleccionada = 0;
-
-        } else {
-            alert('Por favor, completa todos los campos.');
-        }
-    });
-
-    // Mostrar reseña
-    function mostrarReseña(reseña) {
-        const div = document.createElement('div');
-        div.classList.add('reseña');
-        div.innerHTML = `
+        // Mostrar reseña
+        function mostrarReseña(reseña) {
+            const div = document.createElement('div');
+            div.classList.add('reseña');
+            div.innerHTML = `
             <h3>${reseña.nombre}</h3>
             <p>${reseña.comentario}</p>
             <p>⭐ Calificación: ${'★'.repeat(reseña.calificacion)} (${reseña.calificacion}/5)</p>
@@ -260,86 +263,86 @@
             <p class="fecha">${reseña.fecha}</p>
         `;
 
-        // ✔ Botón eliminar si es dueño o si es moderador
-        if (reseña.userId === userId || modoModerador === true) {
-            const btn = document.createElement("button");
-            btn.textContent = "Eliminar";
-            btn.style = "background:#c62828;color:white;padding:8px;border:none;border-radius:5px;cursor:pointer;margin-top:5px;";
-            btn.onclick = () => eliminarReseña(reseña.id);
-            div.appendChild(btn);
-        }
-
-        contenedorReseñas.appendChild(div);
-    }
-
-    // Guardar reseña
-    function guardarReseña(reseña) {
-        let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
-        reseñas.push(reseña);
-        localStorage.setItem('reseñas', JSON.stringify(reseñas));
-    }
-
-    // Cargar reseñas
-    function cargarReseñas() {
-        contenedorReseñas.querySelectorAll('.reseña').forEach(r => r.remove());
-        let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
-        reseñas.forEach(r => mostrarReseña(r));
-    }
-
-    // 🗑️ Eliminar reseña
-    function eliminarReseña(id) {
-        let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
-
-        // Si NO es moderador y la reseña no es suya → prohibir
-        if (!modoModerador) {
-            const r = reseñas.find(r => r.id === id);
-            if (r.userId !== userId) {
-                alert("Solo puedes eliminar tus propias reseñas.");
-                return;
+            // ✔ Botón eliminar si es dueño o si es moderador
+            if (reseña.userId === userId || modoModerador === true) {
+                const btn = document.createElement("button");
+                btn.textContent = "Eliminar";
+                btn.style = "background:#c62828;color:white;padding:8px;border:none;border-radius:5px;cursor:pointer;margin-top:5px;";
+                btn.onclick = () => eliminarReseña(reseña.id);
+                div.appendChild(btn);
             }
+
+            contenedorReseñas.appendChild(div);
         }
 
-        reseñas = reseñas.filter(r => r.id !== id);
-        localStorage.setItem('reseñas', JSON.stringify(reseñas));
-        cargarReseñas();
-    }
+        // Guardar reseña
+        function guardarReseña(reseña) {
+            let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
+            reseñas.push(reseña);
+            localStorage.setItem('reseñas', JSON.stringify(reseñas));
+        }
 
-    // 🔐 Botón activar moderador
-    function crearBotonModerador() {
-        const btn = document.createElement("button");
-        btn.textContent = "🔐 Modo Moderador";
-        btn.style = "background:#6a1b9a;color:white;padding:10px;margin-top:15px;border:none;border-radius:5px;cursor:pointer;width:100%;font-weight:bold;";
-        btn.onclick = activarModerador;
-        contenedorReseñas.prepend(btn);
-    }
+        // Cargar reseñas
+        function cargarReseñas() {
+            contenedorReseñas.querySelectorAll('.reseña').forEach(r => r.remove());
+            let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
+            reseñas.forEach(r => mostrarReseña(r));
+        }
 
-    function activarModerador() {
-        const pass = prompt("Ingrese la contraseña de moderador:");
+        // 🗑️ Eliminar reseña
+        function eliminarReseña(id) {
+            let reseñas = JSON.parse(localStorage.getItem('reseñas')) || [];
 
-        if (pass === MOD_PASSWORD) {
-            modoModerador = true;
-            alert("Modo moderador ACTIVADO.");
+            // Si NO es moderador y la reseña no es suya → prohibir
+            if (!modoModerador) {
+                const r = reseñas.find(r => r.id === id);
+                if (r.userId !== userId) {
+                    alert("Solo puedes eliminar tus propias reseñas.");
+                    return;
+                }
+            }
+
+            reseñas = reseñas.filter(r => r.id !== id);
+            localStorage.setItem('reseñas', JSON.stringify(reseñas));
             cargarReseñas();
-            crearBotonBorrarTodo();
-        } else {
-            alert("Contraseña incorrecta.");
         }
-    }
 
-    // 🧨 Borrar todas las reseñas (solo moderador)
-    function crearBotonBorrarTodo() {
-        const btn = document.createElement("button");
-        btn.textContent = "🧨 BORRAR TODAS LAS RESEÑAS";
-        btn.style = "background:red;color:white;padding:10px;margin-bottom:15px;border:none;border-radius:5px;cursor:pointer;width:100%;font-weight:bold;";
-        btn.onclick = () => {
-            if (confirm("¿Seguro que deseas borrar TODAS las reseñas?")) {
-                localStorage.removeItem('reseñas');
+        // 🔐 Botón activar moderador
+        function crearBotonModerador() {
+            const btn = document.createElement("button");
+            btn.textContent = "🔐 Modo Moderador";
+            btn.style = "background:#6a1b9a;color:white;padding:10px;margin-top:15px;border:none;border-radius:5px;cursor:pointer;width:100%;font-weight:bold;";
+            btn.onclick = activarModerador;
+            contenedorReseñas.prepend(btn);
+        }
+
+        function activarModerador() {
+            const pass = prompt("Ingrese la contraseña de moderador:");
+
+            if (pass === MOD_PASSWORD) {
+                modoModerador = true;
+                alert("Modo moderador ACTIVADO.");
                 cargarReseñas();
+                crearBotonBorrarTodo();
+            } else {
+                alert("Contraseña incorrecta.");
             }
-        };
-        contenedorReseñas.prepend(btn);
-    }
-</script>
+        }
+
+        // 🧨 Borrar todas las reseñas (solo moderador)
+        function crearBotonBorrarTodo() {
+            const btn = document.createElement("button");
+            btn.textContent = "🧨 BORRAR TODAS LAS RESEÑAS";
+            btn.style = "background:red;color:white;padding:10px;margin-bottom:15px;border:none;border-radius:5px;cursor:pointer;width:100%;font-weight:bold;";
+            btn.onclick = () => {
+                if (confirm("¿Seguro que deseas borrar TODAS las reseñas?")) {
+                    localStorage.removeItem('reseñas');
+                    cargarReseñas();
+                }
+            };
+            contenedorReseñas.prepend(btn);
+        }
+    </script>
 
 
 
